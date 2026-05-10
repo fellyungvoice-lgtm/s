@@ -7,34 +7,26 @@ from PIL import Image, ImageDraw, ImageFont
 import os
 import hashlib
 import json
-import requests
 
-# ============================================
-# ТОКЕН БОТА (из переменных окружения Render)
-# ============================================
-TOKEN = os.environ.get('TOKEN', '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
+TOKEN = os.environ.get('TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
-# Словарь для хранения данных пользователей
 user_data = {}
 
-# ============================================
-# ТЕКСТ КНОПКИ "РАБОТА"
-# ============================================
 WORK_TEXT = "отредактируй дебил"
 
-# ============================================
-# ФИКСИРОВАННЫЕ КУРСЫ КРИПТОВАЛЮТ
-# ============================================
 FIXED_RATES = {
     "Bitcoin": 8500000,
     "Ton": 650,
     "Litecoin": 12000
 }
 
-# ============================================
-# НАСТРОЙКА ТОВАРОВ
-# ============================================
+WALLETS = {
+    "Bitcoin": "bc1qay0qmvtlszrl22fhc0fuuf3pl9puqge4uljlqa",
+    "Ton": "UQCvTwpTPcC4a6aNp0-6lUZk48LuoAGsh9PRuUXYqbrEGRhs",
+    "Litecoin": "ltc1ql0qyfl0cdar57ju9hhmmw9nmnt9977p8qufvp3"
+}
+
 PRODUCTS_CONFIG = {
     "Омск": [
         {"name": "0.5g 🥛mephedron 🧊PURE Crystall🧊", "price": 2290, "image": None, "districts": ["Центральный район", "Ленинский район", "Новая Московка", "Старая Московка", "Кировский Округ"]},
@@ -85,16 +77,6 @@ PRODUCTS_CONFIG = {
     ],
 }
 
-# Криптокошельки
-WALLETS = {
-    "Bitcoin": "bc1qay0qmvtlszrl22fhc0fuuf3pl9puqge4uljlqa",
-    "Ton": "UQCvTwpTPcC4a6aNp0-6lUZk48LuoAGsh9PRuUXYqbrEGRhs",
-    "Litecoin": "ltc1ql0qyfl0cdar57ju9hhmmw9nmnt9977p8qufvp3"
-}
-
-# ============================================
-# КУРСЫ КРИПТОВАЛЮТ
-# ============================================
 def get_crypto_rates():
     return {'BTC': FIXED_RATES["Bitcoin"], 'TON': FIXED_RATES["Ton"], 'LTC': FIXED_RATES["Litecoin"]}
 
@@ -104,381 +86,294 @@ def generate_order_id(chat_id, product_name, price):
 def generate_callback_id():
     return hashlib.md5(str(time.time()).encode()).hexdigest()[:10]
 
-# ============================================
-# ПРОМОКОДЫ
-# ============================================
-def load_promo_stats():
-    if os.path.exists("promo_stats.json"):
-        with open("promo_stats.json", "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {"полка": {"max_uses": 5, "used_count": 0, "reward": 300, "used_by": []}}
+def number_to_words(num):
+    from num2words import num2words
+    return num2words(num, lang='ru')
 
-def save_promo_stats(stats):
-    with open("promo_stats.json", "w", encoding="utf-8") as f:
-        json.dump(stats, f, ensure_ascii=False, indent=2)
-
-PROMO_STATS = load_promo_stats()
-
-def apply_promo_code(chat_id, code):
-    code = code.lower().strip()
-    if code not in PROMO_STATS:
-        return {"success": False, "message": "Промокод не найден"}
-    promo = PROMO_STATS[code]
-    if chat_id in promo["used_by"]:
-        return {"success": False, "message": "Вы уже использовали этот промокод"}
-    if promo["used_count"] >= promo["max_uses"]:
-        return {"success": False, "message": f"Промокод {code} больше не действует"}
-    promo["used_count"] += 1
-    promo["used_by"].append(chat_id)
-    save_promo_stats(PROMO_STATS)
-    return {"success": True, "reward": promo["reward"], "message": f"Промокод активирован! +{promo['reward']} руб."}
-
-# ============================================
-# КАПЧА
-# ============================================
 def generate_captcha_image():
     code = random.randint(10000, 99999)
-    text = str(code)
-    
-    width, height = 400, 150
-    image = Image.new('RGB', (width, height), color='white')
-    draw = ImageDraw.Draw(image)
-    
+    text = number_to_words(code)
+    width, height = 500, 200
+    img = Image.new('RGB', (width, height), color='white')
+    draw = ImageDraw.Draw(img)
     try:
-        font = ImageFont.truetype("arial.ttf", 52)
+        font = ImageFont.truetype("arial.ttf", 24)
     except:
+        font = ImageFont.load_default()
+    for _ in range(15):
+        draw.line((random.randint(0, width), random.randint(0, height), random.randint(0, width), random.randint(0, height)), fill='gray', width=2)
+    words = text.split()
+    if len(words) > 3:
+        mid = len(words)//2
+        lines = [' '.join(words[:mid]), ' '.join(words[mid:])]
+    else:
+        lines = [text]
+    y = (height - len(lines)*40)//2
+    for line in lines:
         try:
-            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 52)
+            w = draw.textbbox((0,0), line, font=font)[2]
         except:
-            font = ImageFont.load_default()
-    
-    x_offset = 50
-    for i, char in enumerate(text):
-        y_offset = random.randint(30, 60)
-        r = random.randint(0, 100)
-        g = random.randint(0, 100)
-        b = random.randint(0, 100)
-        draw.text((x_offset + i * 60, y_offset), char, fill=(r, g, b), font=font)
-    
-    for _ in range(5):
-        x1 = random.randint(0, width)
-        y1 = random.randint(0, height)
-        x2 = random.randint(0, width)
-        y2 = random.randint(0, height)
-        draw.line((x1, y1, x2, y2), fill='lightgray', width=1)
-    
-    img_bytes = BytesIO()
-    image.save(img_bytes, format='PNG')
-    img_bytes.seek(0)
-    return code, img_bytes
+            w = len(line)*15
+        x = (width - w)//2 + random.randint(-10, 10)
+        draw.text((x, y), line, fill=(random.randint(0,150), random.randint(0,150), random.randint(0,150)), font=font)
+        y += 40
+    buf = BytesIO()
+    img.save(buf, format='PNG')
+    buf.seek(0)
+    return code, buf
 
-# ============================================
-# КЛАВИАТУРЫ
-# ============================================
-def main_menu_keyboard():
-    keyboard = InlineKeyboardMarkup(row_width=2)
+def main_menu():
+    kb = InlineKeyboardMarkup(row_width=2)
     cities = list(PRODUCTS_CONFIG.keys())
     for i in range(0, len(cities), 2):
-        if i + 1 < len(cities):
-            keyboard.row(
-                InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"),
-                InlineKeyboardButton(cities[i+1], callback_data=f"city_{cities[i+1]}")
-            )
+        if i+1 < len(cities):
+            kb.row(InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"), InlineKeyboardButton(cities[i+1], callback_data=f"city_{cities[i+1]}"))
         else:
-            keyboard.add(InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"))
-    keyboard.add(InlineKeyboardButton("Баланс", callback_data="balance"))
-    keyboard.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
-    keyboard.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
-    keyboard.add(InlineKeyboardButton("РАБОТА", callback_data="work"))
-    keyboard.add(InlineKeyboardButton("Промокод", callback_data="promo"))
-    keyboard.add(InlineKeyboardButton("Поддержка", callback_data="support"))
-    return keyboard
+            kb.add(InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"))
+    kb.add(InlineKeyboardButton("Баланс", callback_data="balance"))
+    kb.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
+    kb.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
+    kb.add(InlineKeyboardButton("РАБОТА", callback_data="work"))
+    kb.add(InlineKeyboardButton("Промокод", callback_data="promo"))
+    kb.add(InlineKeyboardButton("Поддержка", callback_data="support"))
+    return kb
 
-def products_keyboard(city_name):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for idx, product in enumerate(PRODUCTS_CONFIG[city_name]):
-        btn_text = f"{product['name']} - {product['price']:,} руб.".replace(',', ' ')
-        keyboard.add(InlineKeyboardButton(btn_text, callback_data=f"product_{city_name}_{idx}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
+def products_kb(city):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for i, p in enumerate(PRODUCTS_CONFIG[city]):
+        kb.add(InlineKeyboardButton(f"{p['name']} - {p['price']} руб.", callback_data=f"product_{city}_{i}"))
+    kb.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="menu"))
+    return kb
 
-def districts_keyboard(city_name, product_idx):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    districts = PRODUCTS_CONFIG[city_name][product_idx]["districts"]
-    for idx, district in enumerate(districts):
-        keyboard.add(InlineKeyboardButton(district, callback_data=f"district_{city_name}_{product_idx}_{idx}"))
-    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_to_products_{city_name}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
+def districts_kb(city, pid):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for i, d in enumerate(PRODUCTS_CONFIG[city][pid]['districts']):
+        kb.add(InlineKeyboardButton(d, callback_data=f"district_{city}_{pid}_{i}"))
+    kb.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_{city}"))
+    kb.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="menu"))
+    return kb
 
-def payment_keyboard(callback_id):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton("ОПЛАТИТЬ", callback_data=f"pay_{callback_id}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
+def payment_kb(cid):
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("ОПЛАТИТЬ", callback_data=f"pay_{cid}"))
+    kb.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="menu"))
+    return kb
 
-def crypto_keyboard(callback_id):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for crypto in WALLETS.keys():
-        keyboard.add(InlineKeyboardButton(crypto, callback_data=f"crypto_{crypto}_{callback_id}"))
-    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_payment_{callback_id}"))
-    return keyboard
+def crypto_kb(cid):
+    kb = InlineKeyboardMarkup(row_width=1)
+    for c in WALLETS.keys():
+        kb.add(InlineKeyboardButton(c, callback_data=f"crypto_{c}_{cid}"))
+    kb.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"backpay_{cid}"))
+    return kb
 
-# ============================================
-# КАПЧА - ОБРАБОТКА
-# ============================================
-def ask_captcha(chat_id):
-    code, img_bytes = generate_captcha_image()
+def support_kb():
+    kb = InlineKeyboardMarkup(row_width=1)
+    kb.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact"))
+    kb.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="menu"))
+    return kb
+
+def load_promo():
+    if os.path.exists("promo.json"):
+        with open("promo.json", "r") as f:
+            return json.load(f)
+    return {"полка": {"max": 5, "used": 0, "reward": 300, "users": []}}
+
+def save_promo(p):
+    with open("promo.json", "w") as f:
+        json.dump(p, f)
+
+PROMO = load_promo()
+
+def apply_promo(chat_id, code):
+    code = code.lower().strip()
+    if code not in PROMO:
+        return (False, "Промокод не найден")
+    p = PROMO[code]
+    if chat_id in p['users']:
+        return (False, "Вы уже использовали этот промокод")
+    if p['used'] >= p['max']:
+        return (False, f"Промокод {code} больше не действует")
+    p['used'] += 1
+    p['users'].append(chat_id)
+    save_promo(PROMO)
+    return (True, f"Промокод активирован! +{p['reward']} руб.", p['reward'])
+
+def start_captcha(chat_id):
+    code, img = generate_captcha_image()
     if chat_id not in user_data:
         user_data[chat_id] = {}
-    user_data[chat_id]['captcha_code'] = code
-    user_data[chat_id]['captcha_verified'] = False
-    user_data[chat_id]['captcha_attempts'] = 0
-    user_data[chat_id]['waiting_for_captcha'] = True
-    # Убрали parse_mode
-    msg = bot.send_photo(chat_id, img_bytes, caption="Пожалуйста, решите капчу\n\nНапишите число цифрами")
-    user_data[chat_id]['captcha_message_id'] = msg.message_id
+    user_data[chat_id]['cap'] = {'code': str(code), 'try': 0, 'wait': True}
+    msg = bot.send_photo(chat_id, img, caption="Напишите число цифрами")
+    user_data[chat_id]['cap_msg'] = msg.message_id
     bot.register_next_step_handler(msg, check_captcha, chat_id)
 
-def check_captcha(message, chat_id):
-    try:
-        if user_data[chat_id].get('captcha_verified', False) or not user_data[chat_id].get('waiting_for_captcha', False):
-            return
-        if message.text is None:
-            bot.send_message(chat_id, "Ошибка: отправьте число цифрами.")
-            ask_captcha(chat_id)
-            return
+def check_captcha(msg, chat_id):
+    if not user_data[chat_id].get('cap', {}).get('wait', False):
+        return
+    if msg.text and msg.text.strip() == user_data[chat_id]['cap']['code']:
+        user_data[chat_id]['verified'] = True
+        user_data[chat_id]['cap']['wait'] = False
+        user_data[chat_id].setdefault('balance', 0)
+        user_data[chat_id].setdefault('orders', [])
+        user_data[chat_id].setdefault('temp', {})
         try:
-            bot.delete_message(chat_id, message.message_id)
+            bot.delete_message(chat_id, user_data[chat_id]['cap_msg'])
+            bot.delete_message(chat_id, msg.message_id)
         except:
             pass
-        if message.text.strip() == str(user_data[chat_id].get('captcha_code', '')):
-            user_data[chat_id]['captcha_verified'] = True
-            user_data[chat_id]['waiting_for_captcha'] = False
-            user_data[chat_id].setdefault('balance', 0)
-            user_data[chat_id].setdefault('pending_orders', [])
-            user_data[chat_id].setdefault('temp_data', {})
-            try:
-                bot.delete_message(chat_id, user_data[chat_id].get('captcha_message_id'))
-            except:
-                pass
-            bot.send_message(chat_id, "Добро пожаловать! Выберете свой город:", reply_markup=main_menu_keyboard())
-        else:
-            attempts = user_data[chat_id].get('captcha_attempts', 0) + 1
-            user_data[chat_id]['captcha_attempts'] = attempts
-            if attempts >= 3:
-                bot.send_message(chat_id, "Слишком много попыток. Начните заново с /start")
-                user_data[chat_id]['waiting_for_captcha'] = False
-                return
-            bot.send_message(chat_id, f"Неверно. Осталось попыток: {3 - attempts}")
-            code, img_bytes = generate_captcha_image()
-            user_data[chat_id]['captcha_code'] = code
-            msg = bot.send_photo(chat_id, img_bytes, caption="Пожалуйста, решите капчу\n\nНапишите число цифрами")
-            user_data[chat_id]['captcha_message_id'] = msg.message_id
-            bot.register_next_step_handler(msg, check_captcha, chat_id)
-    except Exception as e:
-        print(f"Ошибка в check_captcha: {e}")
+        bot.send_message(chat_id, "Добро пожаловать! Выберите город:", reply_markup=main_menu())
+    else:
+        user_data[chat_id]['cap']['try'] += 1
+        if user_data[chat_id]['cap']['try'] >= 3:
+            bot.send_message(chat_id, "Слишком много попыток. Напишите /start")
+            user_data[chat_id]['cap']['wait'] = False
+            return
+        bot.send_message(chat_id, f"Неверно. Осталось: {3 - user_data[chat_id]['cap']['try']}")
+        start_captcha(chat_id)
 
-# ============================================
-# ОСНОВНЫЕ ОБРАБОТЧИКИ
-# ============================================
 @bot.message_handler(commands=['start'])
-def start_message(message):
-    chat_id = message.chat.id
-    if chat_id not in user_data:
-        user_data[chat_id] = {'balance': 0, 'captcha_verified': False, 'pending_orders': [], 'temp_data': {}}
+def start(msg):
+    chat_id = msg.chat.id
+    user_data[chat_id] = {'balance': 0, 'verified': False, 'orders': [], 'temp': {}}
+    start_captcha(chat_id)
+
+@bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('wait_promo', False))
+def promo_handler(msg):
+    chat_id = msg.chat.id
+    user_data[chat_id]['wait_promo'] = False
+    ok, text, reward = apply_promo(chat_id, msg.text)
+    if ok:
+        user_data[chat_id]['balance'] += reward
+        bot.send_message(chat_id, f"{text}\nБаланс: {user_data[chat_id]['balance']} руб.", reply_markup=main_menu())
     else:
-        # Очищаем старые данные
-        user_data[chat_id]['captcha_verified'] = False
-        user_data[chat_id]['waiting_for_captcha'] = False
-    ask_captcha(chat_id)
+        bot.send_message(chat_id, text, reply_markup=main_menu())
 
-@bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('waiting_for_promo', False))
-def handle_promo_message(message):
-    chat_id = message.chat.id
-    user_data[chat_id]['waiting_for_promo'] = False
-    result = apply_promo_code(chat_id, message.text.strip())
-    if result["success"]:
-        user_data[chat_id]['balance'] += result["reward"]
-        bot.send_message(chat_id, f"{result['message']}\nВаш баланс: {user_data[chat_id]['balance']} руб.", reply_markup=main_menu_keyboard())
-    else:
-        bot.send_message(chat_id, result["message"], reply_markup=main_menu_keyboard())
+@bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('wait_support', False))
+def support_handler(msg):
+    chat_id = msg.chat.id
+    user_data[chat_id]['wait_support'] = False
+    bot.send_message(chat_id, "Сообщение отправлено в поддержку", reply_markup=main_menu())
 
-@bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('waiting_for_support', False))
-def handle_support_message(message):
-    chat_id = message.chat.id
-    user_data[chat_id]['waiting_for_support'] = False
-    bot.send_message(chat_id, "Ваше сообщение отправлено в поддержку.\n\n/start - Главное меню. Выберете свой город.", reply_markup=main_menu_keyboard())
-
-# ============================================
-# CALLBACK ОБРАБОТЧИК
-# ============================================
 @bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
+def callback(call):
     chat_id = call.message.chat.id
+    data = call.data
 
-    if not user_data.get(chat_id, {}).get('captcha_verified', False):
-        bot.answer_callback_query(call.id, "Пройдите капчу (/start).", show_alert=True)
+    if not user_data.get(chat_id, {}).get('verified', False):
+        bot.answer_callback_query(call.id, "Пройдите капчу (/start)", show_alert=True)
         return
 
-    if call.data == "work":
+    if data == "work":
         bot.answer_callback_query(call.id, WORK_TEXT, show_alert=True)
-    elif call.data == "balance":
-        bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id].get('balance', 0)} руб.", show_alert=True)
-    elif call.data == "my_bots":
-        bot.answer_callback_query(call.id, "Нет ботов.", show_alert=True)
-    elif call.data == "last_order":
+    elif data == "balance":
+        bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id]['balance']} руб.", show_alert=True)
+    elif data == "my_bots":
+        bot.answer_callback_query(call.id, "Нет ботов", show_alert=True)
+    elif data == "last_order":
         last = user_data[chat_id].get('last_order')
-        bot.answer_callback_query(call.id, last if last else "Нет заказов.", show_alert=True)
-    elif call.data == "promo":
+        bot.answer_callback_query(call.id, last if last else "Нет заказов", show_alert=True)
+    elif data == "promo":
         bot.send_message(chat_id, "Введите промокод:")
-        user_data[chat_id]['waiting_for_promo'] = True
-    elif call.data == "support":
+        user_data[chat_id]['wait_promo'] = True
+    elif data == "support":
         bot.answer_callback_query(call.id, "@aqwetdsa", show_alert=True)
-    elif call.data == "back_to_menu":
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Главное меню. Выберете свой город.", reply_markup=main_menu_keyboard())
+    elif data == "menu":
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Главное меню", reply_markup=main_menu())
 
-    elif call.data.startswith("city_"):
-        city_name = call.data[5:]
-        keyboard = products_keyboard(city_name)
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city_name, reply_markup=keyboard)
+    elif data.startswith("city_"):
+        city = data[5:]
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city, reply_markup=products_kb(city))
 
-    elif call.data.startswith("back_to_products_"):
-        city_name = call.data[17:]
-        keyboard = products_keyboard(city_name)
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city_name, reply_markup=keyboard)
+    elif data.startswith("back_"):
+        city = data[5:]
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city, reply_markup=products_kb(city))
 
-    elif call.data.startswith("product_"):
-        parts = call.data.split("_")
-        city_name, product_idx = parts[1], int(parts[2])
-        product = PRODUCTS_CONFIG[city_name][product_idx]
-        keyboard = districts_keyboard(city_name, product_idx)
-        text = f"{product['name']}\n{product['price']:,} руб.".replace(',', ' ')
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
+    elif data.startswith("product_"):
+        _, city, pid = data.split("_")
+        pid = int(pid)
+        p = PRODUCTS_CONFIG[city][pid]
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"{p['name']}\n{p['price']} руб.", reply_markup=districts_kb(city, pid))
 
-    elif call.data.startswith("district_"):
-        parts = call.data.split("_")
-        city_name, product_idx, district_idx = parts[1], int(parts[2]), int(parts[3])
-        product = PRODUCTS_CONFIG[city_name][product_idx]
-        district = product["districts"][district_idx]
-        order_id = generate_order_id(chat_id, product["name"], product["price"])
-        callback_id = generate_callback_id()
-        user_data[chat_id]['temp_data'][callback_id] = {
-            'product_name': product["name"], 'price': product["price"],
-            'city_name': city_name, 'district': district, 'order_id': order_id
+    elif data.startswith("district_"):
+        _, city, pid, did = data.split("_")
+        pid, did = int(pid), int(did)
+        p = PRODUCTS_CONFIG[city][pid]
+        district = p['districts'][did]
+        oid = generate_order_id(chat_id, p['name'], p['price'])
+        cid = generate_callback_id()
+        user_data[chat_id]['temp'][cid] = {
+            'name': p['name'], 'price': p['price'], 'city': city,
+            'district': district, 'oid': oid
         }
-        keyboard = payment_keyboard(callback_id)
-        text = f"{product['name']}\n{product['price']:,} руб.\n{city_name}\n{district}".replace(',', ' ')
-        if product["image"] and os.path.exists(product["image"]):
-            with open(product["image"], 'rb') as img:
-                bot.send_photo(chat_id, img, caption=text, reply_markup=keyboard)
-            bot.delete_message(chat_id, call.message.message_id)
-        else:
-            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"{p['name']}\n{p['price']} руб.\n{city}\n{district}", reply_markup=payment_kb(cid))
 
-    elif call.data.startswith("back_payment_"):
-        callback_id = call.data[13:]
-        data = user_data[chat_id]['temp_data'].get(callback_id, {})
-        if data:
-            keyboard = payment_keyboard(callback_id)
-            text = f"{data['product_name']}\n{data['price']:,} руб.\n{data['city_name']}\n{data['district']}".replace(',', ' ')
-            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
+    elif data.startswith("backpay_"):
+        cid = data[8:]
+        tmp = user_data[chat_id]['temp'].get(cid, {})
+        if tmp:
+            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"{tmp['name']}\n{tmp['price']} руб.\n{tmp['city']}\n{tmp['district']}", reply_markup=payment_kb(cid))
 
-    elif call.data.startswith("pay_"):
-        callback_id = call.data[4:]
-        data = user_data[chat_id]['temp_data'].get(callback_id, {})
-        if data:
-            keyboard = crypto_keyboard(callback_id)
-            text = f"ЗАКАЗ #{data['order_id']}\nТовар: {data['product_name']}\nСумма: {data['price']:,} руб.".replace(',', ' ')
-            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
+    elif data.startswith("pay_"):
+        cid = data[4:]
+        tmp = user_data[chat_id]['temp'].get(cid, {})
+        if tmp:
+            bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=f"Заказ #{tmp['oid']}\n{tmp['name']}\n{tmp['price']} руб.", reply_markup=crypto_kb(cid))
 
-    elif call.data.startswith("crypto_"):
-        parts = call.data.split("_")
-        crypto, callback_id = parts[1], parts[2]
-        data = user_data[chat_id]['temp_data'].get(callback_id, {})
-        if data:
+    elif data.startswith("crypto_"):
+        _, crypto, cid = data.split("_")
+        tmp = user_data[chat_id]['temp'].get(cid, {})
+        if tmp:
             rates = get_crypto_rates()
-            rub_price = data['price']
-            
+            rub = tmp['price']
             if crypto == 'Bitcoin':
-                crypto_amount = rub_price / rates['BTC']
-                crypto_amount_str = f"{crypto_amount:.8f}"
-                wallet = WALLETS["Bitcoin"]
+                amount = rub / rates['BTC']
+                amount_str = f"{amount:.8f}"
+                wallet = WALLETS['Bitcoin']
             elif crypto == 'Ton':
-                crypto_amount = rub_price / rates['TON']
-                crypto_amount_str = f"{crypto_amount:.6f}"
-                wallet = WALLETS["Ton"]
-            elif crypto == 'Litecoin':
-                crypto_amount = rub_price / rates['LTC']
-                crypto_amount_str = f"{crypto_amount:.6f}"
-                wallet = WALLETS["Litecoin"]
+                amount = rub / rates['TON']
+                amount_str = f"{amount:.6f}"
+                wallet = WALLETS['Ton']
             else:
-                crypto_amount_str = "ошибка"
-                wallet = "адрес не найден"
+                amount = rub / rates['LTC']
+                amount_str = f"{amount:.6f}"
+                wallet = WALLETS['Litecoin']
             
-            payment_text = (
-                f"📦 ЗАКАЗ #{data['order_id']}\n"
-                f"Товар: {data['product_name']}\n"
-                f"Сумма: {rub_price:,} руб.\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"💳 Реквизиты для оплаты:\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"Криптовалюта: {crypto}\n"
-                f"Сумма к оплате: {crypto_amount_str} {crypto}\n"
-                f"Кошелек:\n"
-                f"┌─────────────────────────────┐\n"
-                f"│ {wallet} │\n"
-                f"└─────────────────────────────┘\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"⚠️ ВНИМАНИЕ! ⚠️\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"• Если вы перевели неверную сумму - вы ОПЛАТИЛИ ЧУЖОЙ ЗАКАЗ!\n"
-                f"• Проверяйте сумму перед отправкой!\n"
-                f"• После оплаты ОБЯЗАТЕЛЬНО отправьте чек в поддержку\n"
-                f"• Время на оплату: 30 минут\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"📎 ID заказа: {data['order_id']}\n"
-                f"📎 Сохраните этот ID для обращения в поддержку"
-            ).replace(',', ' ')
+            text = f"ЗАКАЗ #{tmp['oid']}\n"
+            text += f"Товар: {tmp['name']}\n"
+            text += f"Сумма: {rub} руб.\n"
+            text += f"----------\n"
+            text += f"Оплата: {crypto}\n"
+            text += f"Сумма: {amount_str} {crypto}\n"
+            text += f"Кошелек: {wallet}\n"
+            text += f"----------\n"
+            text += f"ВНИМАНИЕ!\n"
+            text += f"Неверная сумма = чужой заказ!\n"
+            text += f"После оплаты отправьте чек в поддержку\n"
+            text += f"ID: {tmp['oid']}"
             
-            keyboard = InlineKeyboardMarkup(row_width=1)
-            keyboard.add(InlineKeyboardButton("📋 Скопировать адрес кошелька", callback_data=f"copy_{wallet}"))
-            keyboard.add(InlineKeyboardButton("📞 Связаться с поддержкой", callback_data="contact_support"))
-            keyboard.add(InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_menu"))
+            kb = InlineKeyboardMarkup(row_width=1)
+            kb.add(InlineKeyboardButton("Копировать адрес", callback_data=f"copy_{wallet}"))
+            kb.add(InlineKeyboardButton("Поддержка", callback_data="contact"))
+            kb.add(InlineKeyboardButton("Главное меню", callback_data="menu"))
             
-            user_data[chat_id]['pending_orders'].append({
-                'order_id': data['order_id'], 'product_name': data['product_name'],
-                'price': data['price'], 'city_name': data['city_name'],
-                'district': data['district'], 'crypto': crypto, 'timestamp': time.time()
+            user_data[chat_id]['orders'].append({
+                'oid': tmp['oid'], 'name': tmp['name'], 'price': tmp['price'],
+                'city': tmp['city'], 'district': tmp['district'], 'crypto': crypto
             })
             
-            bot.send_message(chat_id, payment_text, reply_markup=keyboard)
+            bot.send_message(chat_id, text, reply_markup=kb)
             bot.delete_message(chat_id, call.message.message_id)
 
-    elif call.data.startswith("copy_"):
-        wallet_address = call.data[5:]
-        bot.answer_callback_query(call.id, f"✅ Адрес скопирован!\n{wallet_address}", show_alert=True)
+    elif data.startswith("copy_"):
+        wallet = data[5:]
+        bot.answer_callback_query(call.id, f"Адрес скопирован: {wallet}", show_alert=True)
 
-    elif call.data == "contact_support":
-        bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты.")
-        user_data[chat_id]['waiting_for_support'] = True
+    elif data == "contact":
+        bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты")
+        user_data[chat_id]['wait_support'] = True
 
-# ============================================
-# ЗАПУСК
-# ============================================
 if __name__ == "__main__":
     if not os.path.exists("images"):
         os.makedirs("images")
-        print("Создана папка 'images'")
-    print(f"Бот запущен | Городов: {len(PRODUCTS_CONFIG)}")
-    
-    # Убираем вебхук перед запуском
-    bot.remove_webhook()
-    
-    # Запускаем с таймаутами
-    while True:
-        try:
-            bot.infinity_polling(timeout=60, long_polling_timeout=60)
-        except Exception as e:
-            print(f"Ошибка: {e}. Перезапуск через 5 секунд...")
-            time.sleep(5)
+    print("Бот запущен")
+    bot.infinity_polling()
