@@ -12,8 +12,8 @@ import requests
 # ============================================
 # ТОКЕН БОТА
 # ============================================
-TOKEN = '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8'
-bot = telebot.TeleBot(TOKEN)
+TOKEN = os.environ.get('TOKEN', '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
+bot = telebot.TeleBot(TOKEN, '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
 
 # Словарь для хранения данных пользователей
 user_data = {}
@@ -482,4 +482,14 @@ if __name__ == "__main__":
         os.makedirs("images")
         print("Создана папка 'images'")
     print(f"Бот запущен | Городов: {len(PRODUCTS_CONFIG)}")
-    bot.infinity_polling()
+    
+    # Убираем вебхук перед запуском (важно для Render)
+    bot.remove_webhook()
+    
+    # Запускаем с таймаутами чтобы не зависал
+    while True:
+        try:
+            bot.infinity_polling(timeout=60, long_polling_timeout=60)
+        except Exception as e:
+            print(f"Ошибка: {e}. Перезапуск через 5 секунд...")
+            time.sleep(5)
