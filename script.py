@@ -254,7 +254,7 @@ def ask_captcha(chat_id):
     user_data[chat_id]['captcha_verified'] = False
     user_data[chat_id]['captcha_attempts'] = 0
     bot.send_photo(chat_id, img_bytes, caption="Пожалуйста, решите капчу\n\nНапишите число цифрами")
-    bot.register_next_step_handler_by_chat_id(chat_id, check_captcha)heck_captcha)
+    bot.register_next_step_handler_by_chat_id(chat_id, check_captcha)
 
 
 def check_captcha(message):
