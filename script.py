@@ -12,7 +12,7 @@ import requests
 # ============================================
 # ТОКЕН БОТА
 # ============================================
-TOKEN = os.environ.get('TOKEN', '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
+TOKEN = '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8'
 bot = telebot.TeleBot(TOKEN)
 
 # Словарь для хранения данных пользователей
@@ -24,7 +24,16 @@ user_data = {}
 WORK_TEXT = "отредактируй дебил"
 
 # ============================================
-# НАСТРОЙКА ТОВАРОВ (эмодзи только здесь)
+# ФИКСИРОВАННЫЕ КУРСЫ КРИПТОВАЛЮТ (на 11.05.2026)
+# ============================================
+FIXED_RATES = {
+    "Bitcoin": 8500000,  # 1 BTC = 8 500 000 руб
+    "Ton": 650,          # 1 TON = 650 руб
+    "Litecoin": 12000    # 1 LTC = 12 000 руб
+}
+
+# ============================================
+# НАСТРОЙКА ТОВАРОВ
 # ============================================
 PRODUCTS_CONFIG = {
     "Омск": [
@@ -84,17 +93,14 @@ WALLETS = {
 }
 
 # ============================================
-# КУРСЫ КРИПТОВАЛЮТ
+# КУРСЫ КРИПТОВАЛЮТ (фиксированные)
 # ============================================
 def get_crypto_rates():
-    try:
-        btc = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=rub', timeout=5).json()
-        ton = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=rub', timeout=5).json()
-        ltc = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=rub', timeout=5).json()
-        return {'BTC': btc.get('bitcoin', {}).get('rub', 0), 'TON': ton.get('the-open-network', {}).get('rub', 0), 'LTC': ltc.get('litecoin', {}).get('rub', 0)}
-    except:
-        return {'BTC': 0, 'TON': 0, 'LTC': 0}
+    return {'BTC': FIXED_RATES["Bitcoin"], 'TON': FIXED_RATES["Ton"], 'LTC': FIXED_RATES["Litecoin"]}
 
+# ============================================
+# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+# ============================================
 def generate_order_id(chat_id, product_name, price):
     return hashlib.md5(f"{chat_id}_{product_name}_{price}_{time.time()}".encode()).hexdigest()[:8]
 
@@ -160,15 +166,13 @@ def generate_captcha_image():
     # Рисуем каждую цифру отдельно со случайным смещением
     x_offset = 50
     for i, char in enumerate(text):
-        # Случайное смещение по Y
         y_offset = random.randint(30, 60)
-        # Случайный цвет
         r = random.randint(0, 100)
         g = random.randint(0, 100)
         b = random.randint(0, 100)
         draw.text((x_offset + i * 60, y_offset), char, fill=(r, g, b), font=font)
     
-    # Добавляем легкие линии (не перекрывают цифры)
+    # Добавляем легкие линии
     for _ in range(5):
         x1 = random.randint(0, width)
         y1 = random.randint(0, height)
@@ -231,12 +235,6 @@ def crypto_keyboard(callback_id):
     for crypto in WALLETS.keys():
         keyboard.add(InlineKeyboardButton(crypto, callback_data=f"crypto_{crypto}_{callback_id}"))
     keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_payment_{callback_id}"))
-    return keyboard
-
-def support_keyboard():
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact_support"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
     return keyboard
 
 # ============================================
@@ -401,7 +399,7 @@ def callback_query(call):
         data = user_data[chat_id]['temp_data'].get(callback_id, {})
         if data:
             keyboard = crypto_keyboard(callback_id)
-            text = f"Заказ #{data['order_id']}\n{data['product_name']}\n{data['price']:,} руб.".replace(',', ' ')
+            text = f"ЗАКАЗ #{data['order_id']}\nТовар: {data['product_name']}\nСумма: {data['price']:,} руб.".replace(',', ' ')
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
 
     elif call.data.startswith("crypto_"):
@@ -411,28 +409,66 @@ def callback_query(call):
         if data:
             rates = get_crypto_rates()
             rub_price = data['price']
-            if crypto == 'Bitcoin' and rates['BTC'] > 0:
+            
+            if crypto == 'Bitcoin':
                 crypto_amount = rub_price / rates['BTC']
                 crypto_amount_str = f"{crypto_amount:.8f}"
-            elif crypto == 'Ton' and rates['TON'] > 0:
+                wallet = WALLETS["Bitcoin"]
+            elif crypto == 'Ton':
                 crypto_amount = rub_price / rates['TON']
                 crypto_amount_str = f"{crypto_amount:.6f}"
-            elif crypto == 'Litecoin' and rates['LTC'] > 0:
+                wallet = WALLETS["Ton"]
+            elif crypto == 'Litecoin':
                 crypto_amount = rub_price / rates['LTC']
                 crypto_amount_str = f"{crypto_amount:.6f}"
+                wallet = WALLETS["Litecoin"]
             else:
-                crypto_amount_str = "Курс временно недоступен"
-            if crypto_amount_str != "Курс временно недоступен":
-                text = f"Переведите {rub_price:,} руб.\n\n{crypto}\n{crypto_amount_str}\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = чужой заказ!\n\nID: {data['order_id']}".replace(',', ' ')
-            else:
-                text = f"Переведите {rub_price:,} руб.\n\n{crypto}\n{WALLETS[crypto]}\n\nКурс временно недоступен\n\nID: {data['order_id']}".replace(',', ' ')
+                crypto_amount_str = "ошибка"
+                wallet = "адрес не найден"
+            
+            payment_text = (
+                f"📦 ЗАКАЗ #{data['order_id']}\n"
+                f"Товар: {data['product_name']}\n"
+                f"Сумма: {rub_price:,} руб.\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"💳 Реквизиты для оплаты:\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"Криптовалюта: {crypto}\n"
+                f"Сумма к оплате: {crypto_amount_str} {crypto}\n"
+                f"Кошелек:\n"
+                f"┌─────────────────────────────┐\n"
+                f"│ {wallet} │\n"
+                f"└─────────────────────────────┘\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"⚠️ ВНИМАНИЕ! ⚠️\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"• Если вы перевели неверную сумму - вы ОПЛАТИЛИ ЧУЖОЙ ЗАКАЗ!\n"
+                f"• Проверяйте сумму перед отправкой!\n"
+                f"• После оплаты ОБЯЗАТЕЛЬНО отправьте чек в поддержку\n"
+                f"• Время на оплату: 30 минут\n"
+                f"━━━━━━━━━━━━━━━━━━━━\n"
+                f"📎 ID заказа: {data['order_id']}\n"
+                f"📎 Сохраните этот ID для обращения в поддержку"
+            ).replace(',', ' ')
+            
+            # Клавиатура с кнопкой копирования
+            keyboard = InlineKeyboardMarkup(row_width=1)
+            keyboard.add(InlineKeyboardButton(" Скопировать адрес кошелька", callback_data=f"copy_{wallet}"))
+            keyboard.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact_support"))
+            keyboard.add(InlineKeyboardButton("Главное меню", callback_data="back_to_menu"))
+            
             user_data[chat_id]['pending_orders'].append({
                 'order_id': data['order_id'], 'product_name': data['product_name'],
                 'price': data['price'], 'city_name': data['city_name'],
                 'district': data['district'], 'crypto': crypto, 'timestamp': time.time()
             })
-            bot.send_message(chat_id, text, reply_markup=support_keyboard())
+            
+            bot.send_message(chat_id, payment_text, reply_markup=keyboard)
             bot.delete_message(chat_id, call.message.message_id)
+
+    elif call.data.startswith("copy_"):
+        wallet_address = call.data[5:]
+        bot.answer_callback_query(call.id, f"Адрес скопирован!\n{wallet_address}", show_alert=True)
 
     elif call.data == "contact_support":
         bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты.")
