@@ -9,13 +9,17 @@ import hashlib
 import json
 import requests
 
-TOKEN = os.environ.get('TOKEN')
+# ============================================
+# ТОКЕН БОТА
+# ============================================
+TOKEN = '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8'
 bot = telebot.TeleBot(TOKEN)
 
+# Словарь для хранения данных пользователей
 user_data = {}
 
 # ============================================
-# КУРСЫ КРИПТОВАЛЮТ
+# КУРСЫ КРИПТОВАЛЮТ К РУБЛЮ
 # ============================================
 def get_crypto_rates():
     try:
@@ -30,58 +34,194 @@ def get_crypto_rates():
         return {'BTC': 0, 'TON': 0, 'LTC': 0}
 
 # ============================================
-# НАСТРОЙКА ТОВАРОВ
+# НАСТРОЙКА ТОВАРОВ С РАЙОНАМИ (С ЭМОДЗИ)
 # ============================================
 PRODUCTS_CONFIG = {
     "Омск": [
-        {"name": "0.5g mephedrone", "price": 2290, "image": None, "districts": ["Центральный район", "Ленинский район", "Новая Московка", "Старая Московка", "Кировский Округ"]},
-        {"name": "1g mephedrone", "price": 4580, "image": None, "districts": ["Центральный район", "Старый Кировск", "Старая Московка", "Новая Московка", "Порт-Артур"]},
-        {"name": "1g NEW GASH", "price": 2850, "image": None, "districts": ["Центральный район", "городок Нефтяники", "Новая Московка"]},
-        {"name": "0.5g NEW GASH", "price": 1420, "image": None, "districts": ["Центральный район", "Старая Московка", "Новая Московка", "Старый Кировск"]},
-        {"name": "2шт MDMA 250ml", "price": 2945, "image": None, "districts": ["Старый Кировск", "Старая Московка"]},
+        {
+            "name": "0.5g 🥛mephedron 🧊PURE Crystall🧊",
+            "price": 2290,
+            "image": None,
+            "districts": ["Центральный район", "Ленинский район", "Новая Московка", "Старая Московка", "Кировский Округ"]
+        },
+        {
+            "name": "1g 🥛mephedron 🧊PURE Crystall🧊",
+            "price": 4580,
+            "image": None,
+            "districts": ["Центральный район", "Старый Кировск", "Старая Московка", "Новая Московка", "Порт-Артур"]
+        },
+        {
+            "name": "1g 🍫NEW GASH - 🧁KINDER BUENO🧁",
+            "price": 2850,
+            "image": None,
+            "districts": ["Центральный район", "городок Нефтяники", "Новая Московка"]
+        },
+        {
+            "name": "0.5g 🍫NEW GASH - 🧁KINDER BUENO🧁",
+            "price": 1420,
+            "image": None,
+            "districts": ["Центральный район", "Старая Московка", "Новая Московка", "Старый Кировск"]
+        },
+        {
+            "name": "2шт. 🌑MDMA 💃Forever Night💃 250ml ",
+            "price": 2945,
+            "image": None,
+            "districts": ["Старый Кировск", "Старая Московка"]
+        },
     ],
     "Новосибирск": [
-        {"name": "0.5g GASH Green glass", "price": 1520, "image": None, "districts": ["Железнодорожный район", "Центральный район", "Калининский район", "Кировский район"]},
-        {"name": "1g GASH Green glass", "price": 3040, "image": None, "districts": ["Кировский район", "Железнодорожный район", "Дзержинский район", "Заельцовский район", "Центральный район", "Советский район"]},
-        {"name": "1g mephedrone White true", "price": 4620, "image": None, "districts": ["Заельцовский район", "Советский район", "Центральный район","Железнодорожный район"]},
-        {"name": "2шт MDMA Candy Life 300ml", "price": 3240, "image": None, "districts": ["ПРЕДЗАКАЗ!"]},
-        {"name": "1g Boshki Snoop Dog 70%", "price": 3100, "image": None, "districts": ["Центральный район", "Железнодорожный район", "Кировский район"]},
+        {
+            "name": "0.5g 🍫GASH 🍫Green glass🍫",
+            "price": 1520,
+            "image": None,
+            "districts": ["Железнодорожный район", "Центральный район", "Калининский район", "Кировский район"]
+        },
+        {
+            "name": "1g 🍫GASH 🍫Green glass🍫",
+            "price": 3040,
+            "image": None,
+            "districts": ["Кировский район", "Железнодорожный район", "Дзержинский район", "Заельцовский район", "Центральный район", "Советский район"]
+        },
+        {
+            "name": "1g 🧊mephedron 🧊White true🧊",
+            "price": 4620,
+            "image": None,
+            "districts": ["Заельцовский район", "Советский район", "Центральный район","Железнодорожный район"]
+        },
+        {
+            "name": "2шт. 🌑MDMA 🧁Candy Life🧁 300ml",
+            "price": 3240,
+            "image": None,
+            "districts": ["ПРЕДЗАКАЗ!"]
+        },
+        {
+            "name": "1g 🌲Boshki 🌲🐕Snoop Dog🐕🌲 70%tgk",
+            "price": 3100,
+            "image": None,
+            "districts": ["Центральный район", "Железнодорожный район", "Кировский район"]
+        },
     ],
     "Красноярск": [
-        {"name": "3g mephedrone SuperPlay", "price": 12220, "image": None, "districts": ["Свердловский район", "Ленинский район", "Октябрьский район", "Советский район"]},
-        {"name": "1g mephedrone SuperPlay", "price": 4420, "image": None, "districts": ["Центральный район", "Кировский район", "Ленинский район", "Советский район"]},
-        {"name": "1g GASH Snoop dog", "price": 2900, "image": None, "districts": ["Центральный район", "Кировский район", "Ленинский район", "Советский район"]},
-        {"name": "1g Alfa PVP Next Lvl", "price": 3600, "image": None, "districts": ["Заельцовский район", "Советский район", "Центральный район","Железнодорожный район"]},
+        {
+            "name": "3g 🧊mephedron 🧊SuperPlay🧊",
+            "price": 12220,
+            "image": None,
+            "districts": ["Свердловский район", "Ленинский район", "Октябрьский район", "Советский район"]
+        },
+        {
+            "name": "1g 🧊mephedron 🧊SuperPlay🧊",
+            "price": 4420,
+            "image": None,
+            "districts": ["Центральный район", "Кировский район", "Ленинский район", "Советский район"]
+        },
+        {
+            "name": "1g 🍫GASH 🍫Snoop dog🍫",
+            "price": 2900,
+            "image": None,
+            "districts": ["Центральный район", "Кировский район", "Ленинский район", "Советский район"]
+        },
+        {
+            "name": "1g 🧊Alfa 🧊PVP Next🧊 Lvl",
+            "price": 3600,
+            "image": None,
+            "districts": ["Заельцовский район", "Советский район", "Центральный район","Железнодорожный район"]
+        },
     ],
     "Томск": [
-        {"name": "1g mephedrone PURE Crystall", "price": 4200, "image": None, "districts": ["Советский район", "Кировский район", "Октябрьский район"]},
-        {"name": "1g NEW GASH KINDER BUENO", "price": 3140, "image": None, "districts": ["Центральный район", "Советский район"]},
+        {
+            "name": "1g 🥛mephedron 🧊PURE Crystall🧊",
+            "price": 4200,
+            "image": None,
+            "districts": ["Советский район", "Кировский район", "Октябрьский район"]
+        },
+        {
+            "name": "1g 🍫NEW GASH - 🧁KINDER BUENO🧁",
+            "price": 3140,
+            "image": None,
+            "districts": ["Центральный район", "Советский район"]
+        },
     ],
     "Иркутск": [
-        {"name": "1g mephedrone SaintChaser", "price": 4600, "image": None, "districts": ["Свердловский район", "Центральный район"]}
+        {
+            "name": "1g 🧊mephedron 🧊SaintChaser🧊 ",
+            "price": 4600,
+            "image": None,
+            "districts": ["Свердловский район", "Центральный район"]
+        }
     ],
     "Барнаул": [
-        {"name": "1g GASH Гематоген", "price": 2640, "image": None, "districts": ["Центральный район", "Октябрьский район ", "Советский район"]},
-        {"name": "1g mephedrone", "price": 4500, "image": None, "districts": ["Октябрьский район", "Советский район", "Железнодорожный район", "Центральный район"]},
+        {
+            "name": "1g 🍫GASH Гематоген🍫 ",
+            "price": 2640,
+            "image": None,
+            "districts": ["Центральный район", "Октябрьский район ", "Советский район"]
+        },
+        {
+            "name": "🧊1g mephedron🧊",
+            "price": 4500,
+            "image": None,
+            "districts": ["Октябрьский район", "Советский район", "Железнодорожный район", "Центральный район"]
+        },
     ],
     "Кемерово": [
-        {"name": "РАБОТА", "price": 80000, "image": None, "districts": ["Пишите анкету в поддержку"]},
+        {
+            "name": "💵РАБОТА💵",
+            "price": 80000,
+            "image": None,
+            "districts": ["Пишите анкету в поддержку"]
+        },
     ],
     "Новокузнецк": [
-        {"name": "1g Alfa PVP New Game", "price": 3420, "image": None, "districts": ["Заводской район", "Новоильинский район ", "Куйбышевский район", "Орджоникидзевский район"]},
-        {"name": "5g Alfa PVP New Game", "price": 17100, "image": None, "districts": ["Куйбышевский район", "Заводской район"]},
+        {
+            "name": "1g 🧊Alfa PVP 🧊🎰New Game🎰🧊",
+            "price": 3420,
+            "image": None,
+            "districts": ["Заводской район", "Новоильинский район ", "Куйбышевский район", "Орджоникидзевский район"]
+        },
+        {
+            "name": "5g Alfa PVP New Game",
+            "price": 17100,
+            "image": None,
+            "districts": ["Куйбышевский район", "Заводской район"]
+        },
     ],
     "Тюмень": [
-        {"name": "2шт MDMA Forever Young 250ml", "price": 2950, "image": None, "districts": ["Калининский район", "Восточный район", "Центральный район", "Советский район"]},
-        {"name": "0.5g GASH Green glass", "price": 1970, "image": None, "districts": ["Восточный район", "Советский район", "Калининский район"]},
-        {"name": "1g GASH Green glass", "price": 3300, "image": None, "districts": ["Октябрьский район", "Советский район", "Железнодорожный район", "Центральный район"]},
-        {"name": "1g mepheron Pure Sky", "price": 3960, "image": None, "districts": ["Советский район","Центральный район"]},
+        {
+            "name": "2шт. 💎MDMA Forever 💎Young💎 250ml",
+            "price": 2950,
+            "image": None,
+            "districts": ["Калининский район", "Восточный район", "Центральный район", "Советский район"]
+        },
+        {
+            "name": "0.5g GASH 🍫Green glass🍫",
+            "price": 1970,
+            "image": None,
+            "districts": ["Восточный район", "Советский район", "Калининский район"]
+        },
+        {
+            "name": "1g GASH 🍫Green glass🍫",
+            "price": 3300,
+            "image": None,
+            "districts": ["Октябрьский район", "Советский район", "Железнодорожный район", "Центральный район"]
+        },
+        {
+            "name": "1g 🧊mepheron 🌁Pure Sky🌁",
+            "price": 3960,
+            "image": None,
+            "districts": ["Советский район","Центральный район"]
+        },
     ],
     "Абакан": [
-        {"name": "РАБОТА", "price": 80000, "image": None, "districts": ["Пишите анкету в поддержку"]},
+        {
+            "name": "💵РАБОТА💵",
+            "price": 80000,
+            "image": None,
+            "districts": ["Пишите анкету в поддержку"]
+        },
     ],
 }
 
+# Криптокошельки
 WALLETS = {
     "BTC": "bc1qay0qmvtlszrl22fhc0fuuf3pl9puqge4uljlqa",
     "TON": "UQCvTwpTPcC4a6aNp0-6lUZk48LuoAGsh9PRuUXYqbrEGRhs",
@@ -97,14 +237,11 @@ def load_promo_stats():
             return json.load(f)
     return {"полка": {"max_uses": 5, "used_count": 0, "reward": 300, "used_by": []}}
 
-
 def save_promo_stats(stats):
     with open("promo_stats.json", "w", encoding="utf-8") as f:
         json.dump(stats, f, ensure_ascii=False, indent=2)
 
-
 PROMO_STATS = load_promo_stats()
-
 
 def apply_promo_code(chat_id, code):
     code = code.lower().strip()
@@ -120,7 +257,6 @@ def apply_promo_code(chat_id, code):
     save_promo_stats(PROMO_STATS)
     return {"success": True, "reward": promo["reward"], "message": f"Промокод активирован! +{promo['reward']} руб."}
 
-
 # ============================================
 # КАПЧА
 # ============================================
@@ -130,7 +266,6 @@ def number_to_words(num):
         return num2words(num, lang='ru')
     except ImportError:
         return str(num)
-
 
 def generate_captcha_image():
     code = random.randint(1000, 99999)
@@ -171,81 +306,12 @@ def generate_captcha_image():
     img_bytes.seek(0)
     return code, img_bytes
 
-
 def generate_order_id(chat_id, product_name, price):
     return hashlib.md5(f"{chat_id}_{product_name}_{price}_{time.time()}".encode()).hexdigest()[:8]
-
 
 def generate_callback_id():
     return hashlib.md5(str(time.time()).encode()).hexdigest()[:10]
 
-
-# ============================================
-# КЛАВИАТУРЫ
-# ============================================
-def main_menu_keyboard():
-    keyboard = InlineKeyboardMarkup(row_width=2)
-    cities = list(PRODUCTS_CONFIG.keys())
-    for i in range(0, len(cities), 2):
-        if i + 1 < len(cities):
-            keyboard.row(
-                InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"),
-                InlineKeyboardButton(cities[i + 1], callback_data=f"city_{cities[i + 1]}")
-            )
-        else:
-            keyboard.add(InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"))
-    keyboard.add(InlineKeyboardButton("Баланс", callback_data="balance"))
-    keyboard.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
-    keyboard.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
-    keyboard.add(InlineKeyboardButton("Промокод", callback_data="promo"))
-    keyboard.add(InlineKeyboardButton("Поддержка", callback_data="support"))
-    return keyboard
-
-
-def products_keyboard(city_name):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for idx, product in enumerate(PRODUCTS_CONFIG[city_name]):
-        btn_text = f"{product['name']} - {product['price']:,} руб.".replace(',', ' ')
-        keyboard.add(InlineKeyboardButton(btn_text, callback_data=f"product_{city_name}_{idx}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
-
-
-def districts_keyboard(city_name, product_idx):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    districts = PRODUCTS_CONFIG[city_name][product_idx]["districts"]
-    for idx, district in enumerate(districts):
-        keyboard.add(InlineKeyboardButton(district, callback_data=f"district_{city_name}_{product_idx}_{idx}"))
-    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_to_products_{city_name}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
-
-
-def payment_keyboard(callback_id):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton("ОПЛАТИТЬ", callback_data=f"pay_{callback_id}"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
-
-
-def crypto_keyboard(callback_id):
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    for crypto in WALLETS.keys():
-        keyboard.add(InlineKeyboardButton(crypto, callback_data=f"crypto_{crypto}_{callback_id}"))
-    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_payment_{callback_id}"))
-    return keyboard
-
-
-def support_keyboard():
-    keyboard = InlineKeyboardMarkup(row_width=1)
-    keyboard.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact_support"))
-    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
-    return keyboard
-
-
-# ============================================
-# КАПЧА - ОБРАБОТКА (БЕЗ УДАЛЕНИЯ)
-# ============================================
 def ask_captcha(chat_id):
     code, img_bytes = generate_captcha_image()
     if chat_id not in user_data:
@@ -256,21 +322,17 @@ def ask_captcha(chat_id):
     bot.send_photo(chat_id, img_bytes, caption="Пожалуйста, решите капчу\n\nНапишите число цифрами")
     bot.register_next_step_handler_by_chat_id(chat_id, check_captcha)
 
-
 def check_captcha(message):
     chat_id = message.chat.id
     try:
         if user_data[chat_id].get('captcha_verified', False):
             return
-
         if message.text is None:
             bot.send_message(chat_id, "Ошибка: отправьте число цифрами.")
             ask_captcha(chat_id)
             return
-
         user_input = message.text.strip()
         expected = str(user_data[chat_id].get('captcha_code', ''))
-
         if user_input == expected:
             user_data[chat_id]['captcha_verified'] = True
             user_data[chat_id].setdefault('balance', 0)
@@ -289,6 +351,63 @@ def check_captcha(message):
         print(e)
         bot.send_message(chat_id, f"Ошибка. Попробуйте /start заново.")
 
+# ============================================
+# КЛАВИАТУРЫ (С ЭМОДЗИ В КНОПКЕ "РАБОТА")
+# ============================================
+def main_menu_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=2)
+    cities = list(PRODUCTS_CONFIG.keys())
+    for i in range(0, len(cities), 2):
+        if i + 1 < len(cities):
+            keyboard.row(
+                InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"),
+                InlineKeyboardButton(cities[i+1], callback_data=f"city_{cities[i+1]}")
+            )
+        else:
+            keyboard.add(InlineKeyboardButton(cities[i], callback_data=f"city_{cities[i]}"))
+    keyboard.add(InlineKeyboardButton("Баланс", callback_data="balance"))
+    keyboard.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
+    keyboard.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
+    keyboard.add(InlineKeyboardButton("💵РАБОТА💵", callback_data="work"))
+    keyboard.add(InlineKeyboardButton("Промокод", callback_data="promo"))
+    keyboard.add(InlineKeyboardButton("Поддержка", callback_data="support"))
+    return keyboard
+
+def products_keyboard(city_name):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    for idx, product in enumerate(PRODUCTS_CONFIG[city_name]):
+        btn_text = f"{product['name']} - {product['price']:,} руб.".replace(',', ' ')
+        keyboard.add(InlineKeyboardButton(btn_text, callback_data=f"product_{city_name}_{idx}"))
+    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
+    return keyboard
+
+def districts_keyboard(city_name, product_idx):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    districts = PRODUCTS_CONFIG[city_name][product_idx]["districts"]
+    for idx, district in enumerate(districts):
+        keyboard.add(InlineKeyboardButton(district, callback_data=f"district_{city_name}_{product_idx}_{idx}"))
+    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_to_products_{city_name}"))
+    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
+    return keyboard
+
+def payment_keyboard(callback_id):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(InlineKeyboardButton("ОПЛАТИТЬ", callback_data=f"pay_{callback_id}"))
+    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
+    return keyboard
+
+def crypto_keyboard(callback_id):
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    for crypto in WALLETS.keys():
+        keyboard.add(InlineKeyboardButton(crypto, callback_data=f"crypto_{crypto}_{callback_id}"))
+    keyboard.add(InlineKeyboardButton("<-- Назад -->", callback_data=f"back_payment_{callback_id}"))
+    return keyboard
+
+def support_keyboard():
+    keyboard = InlineKeyboardMarkup(row_width=1)
+    keyboard.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact_support"))
+    keyboard.add(InlineKeyboardButton("<-- Главное меню -->", callback_data="back_to_menu"))
+    return keyboard
 
 # ============================================
 # ОСНОВНЫЕ ОБРАБОТЧИКИ
@@ -301,7 +420,6 @@ def start_message(message):
     user_data[chat_id]['captcha_verified'] = False
     ask_captcha(chat_id)
 
-
 @bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('waiting_for_promo', False))
 def handle_promo_message(message):
     chat_id = message.chat.id
@@ -309,32 +427,25 @@ def handle_promo_message(message):
     result = apply_promo_code(chat_id, message.text.strip())
     if result["success"]:
         user_data[chat_id]['balance'] += result["reward"]
-        bot.send_message(chat_id, f"{result['message']}\nВаш баланс: {user_data[chat_id]['balance']} руб.",
-                         reply_markup=main_menu_keyboard())
+        bot.send_message(chat_id, f"{result['message']}\nВаш баланс: {user_data[chat_id]['balance']} руб.", reply_markup=main_menu_keyboard())
     else:
         bot.send_message(chat_id, result["message"], reply_markup=main_menu_keyboard())
-
 
 @bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('waiting_for_support', False))
 def handle_support_message(message):
     chat_id = message.chat.id
     user_data[chat_id]['waiting_for_support'] = False
-    bot.send_message(chat_id, "Ваше сообщение отправлено в поддержку.\n\n/start - Главное меню.",
-                     reply_markup=main_menu_keyboard())
+    bot.send_message(chat_id, "Ваше сообщение отправлено в поддержку.\n\n/start - Главное меню.", reply_markup=main_menu_keyboard())
 
-
-# ============================================
-# CALLBACK ОБРАБОТЧИК
-# ============================================
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     chat_id = call.message.chat.id
-
     if not user_data.get(chat_id, {}).get('captcha_verified', False):
         bot.answer_callback_query(call.id, "Пройдите капчу (/start).", show_alert=True)
         return
-
-    if call.data == "balance":
+    if call.data == "work":
+        bot.answer_callback_query(call.id, WORK_TEXT, show_alert=True)
+    elif call.data == "balance":
         bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id].get('balance', 0)} руб.", show_alert=True)
     elif call.data == "my_bots":
         bot.answer_callback_query(call.id, "Нет ботов.", show_alert=True)
@@ -347,19 +458,15 @@ def callback_query(call):
     elif call.data == "support":
         bot.answer_callback_query(call.id, "@aqwetdsa", show_alert=True)
     elif call.data == "back_to_menu":
-        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Главное меню. Выберите свой город.",
-                              reply_markup=main_menu_keyboard())
-
+        bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text="Главное меню. Выберите свой город.", reply_markup=main_menu_keyboard())
     elif call.data.startswith("city_"):
         city_name = call.data[5:]
         keyboard = products_keyboard(city_name)
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city_name, reply_markup=keyboard)
-
     elif call.data.startswith("back_to_products_"):
         city_name = call.data[17:]
         keyboard = products_keyboard(city_name)
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=city_name, reply_markup=keyboard)
-
     elif call.data.startswith("product_"):
         parts = call.data.split("_")
         city_name, product_idx = parts[1], int(parts[2])
@@ -367,7 +474,6 @@ def callback_query(call):
         keyboard = districts_keyboard(city_name, product_idx)
         text = f"{product['name']}\n{product['price']:,} руб.".replace(',', ' ')
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
-
     elif call.data.startswith("district_"):
         parts = call.data.split("_")
         city_name, product_idx, district_idx = parts[1], int(parts[2]), int(parts[3])
@@ -382,7 +488,6 @@ def callback_query(call):
         keyboard = payment_keyboard(callback_id)
         text = f"{product['name']}\n{product['price']:,} руб.\n{city_name}\n{district}".replace(',', ' ')
         bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
-
     elif call.data.startswith("back_payment_"):
         callback_id = call.data[13:]
         data = user_data[chat_id]['temp_data'].get(callback_id, {})
@@ -390,7 +495,6 @@ def callback_query(call):
             keyboard = payment_keyboard(callback_id)
             text = f"{data['product_name']}\n{data['price']:,} руб.\n{data['city_name']}\n{data['district']}".replace(',', ' ')
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
-
     elif call.data.startswith("pay_"):
         callback_id = call.data[4:]
         data = user_data[chat_id]['temp_data'].get(callback_id, {})
@@ -398,7 +502,6 @@ def callback_query(call):
             keyboard = crypto_keyboard(callback_id)
             text = f"Заказ #{data['order_id']}\n{data['product_name']}\n{data['price']:,} руб.".replace(',', ' ')
             bot.edit_message_text(chat_id=chat_id, message_id=call.message.message_id, text=text, reply_markup=keyboard)
-
     elif call.data.startswith("crypto_"):
         parts = call.data.split("_")
         crypto, callback_id = parts[1], parts[2]
@@ -406,7 +509,6 @@ def callback_query(call):
         if data:
             rates = get_crypto_rates()
             rub_price = data['price']
-
             if crypto == 'BTC' and rates['BTC'] > 0:
                 crypto_amount = rub_price / rates['BTC']
                 crypto_amount_str = f"{crypto_amount:.8f}"
@@ -418,25 +520,19 @@ def callback_query(call):
                 crypto_amount_str = f"{crypto_amount:.6f}"
             else:
                 crypto_amount_str = "Курс временно недоступен"
-
             if crypto_amount_str != "Курс временно недоступен":
-                text = f"Сумма к оплате:\n\nРУБ: {rub_price:,} руб.\n{crypto}: {crypto_amount_str}\n\nКошелек {crypto}:\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nПосле оплаты пришлите чек в поддержку\n\nID заказа: {data['order_id']}".replace(
-                    ',', ' ')
+                text = f"Сумма к оплате:\n\nРУБ: {rub_price:,} руб.\n{crypto}: {crypto_amount_str}\n\nКошелек {crypto}:\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nПосле оплаты пришлите чек в поддержку\n\nID заказа: {data['order_id']}".replace(',', ' ')
             else:
-                text = f"Переведите {rub_price:,} руб.\n\n{crypto}\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nКурс {crypto} временно недоступен, оплатите по курсу в ручном режиме\n\nID заказа: {data['order_id']}".replace(
-                    ',', ' ')
-
+                text = f"Переведите {rub_price:,} руб.\n\n{crypto}\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nКурс {crypto} временно недоступен, оплатите по курсу в ручном режиме\n\nID заказа: {data['order_id']}".replace(',', ' ')
             user_data[chat_id]['pending_orders'].append({
                 'order_id': data['order_id'], 'product_name': data['product_name'],
                 'price': data['price'], 'city_name': data['city_name'],
                 'district': data['district'], 'crypto': crypto, 'timestamp': time.time()
             })
             bot.send_message(chat_id, text, reply_markup=support_keyboard())
-
     elif call.data == "contact_support":
         bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты.")
         user_data[chat_id]['waiting_for_support'] = True
-
 
 # ============================================
 # ЗАПУСК
