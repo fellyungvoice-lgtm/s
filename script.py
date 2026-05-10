@@ -12,29 +12,25 @@ import requests
 # ============================================
 # ТОКЕН БОТА
 # ============================================
-TOKEN = '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8'
+TOKEN = os.environ.get('TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
 # Словарь для хранения данных пользователей
 user_data = {}
 
 # ============================================
-# КУРСЫ КРИПТОВАЛЮТ К РУБЛЮ
+# КУРСЫ КРИПТОВАЛЮТ (ФИКСИРОВАННЫЕ)
 # ============================================
 def get_crypto_rates():
-    try:
-        btc_response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=rub')
-        btc_rate = btc_response.json().get('bitcoin', {}).get('rub', 0)
-        ton_response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=rub')
-        ton_rate = ton_response.json().get('the-open-network', {}).get('rub', 0)
-        ltc_response = requests.get('https://api.coingecko.com/api/v3/simple/price?ids=litecoin&vs_currencies=rub')
-        ltc_rate = ltc_response.json().get('litecoin', {}).get('rub', 0)
-        return {'BTC': btc_rate, 'TON': ton_rate, 'LTC': ltc_rate}
-    except:
-        return {'BTC': 0, 'TON': 0, 'LTC': 0}
+    # Фиксированные курсы на 10.05.2026
+    return {
+        'BTC': 7950000,   # 1 BTC = 7,950,000 руб
+        'TON': 185,       # 1 TON = 185 руб
+        'LTC': 7350       # 1 LTC = 7,350 руб
+    }
 
 # ============================================
-# НАСТРОЙКА ТОВАРОВ С РАЙОНАМИ (С ЭМОДЗИ)
+# НАСТРОЙКА ТОВАРОВ С РАЙОНАМИ
 # ============================================
 PRODUCTS_CONFIG = {
     "Омск": [
@@ -221,7 +217,7 @@ PRODUCTS_CONFIG = {
     ],
 }
 
-# Криптокошельки
+# Криптокошельки (ЗАМЕНИ НА СВОИ)
 WALLETS = {
     "BTC": "bc1qay0qmvtlszrl22fhc0fuuf3pl9puqge4uljlqa",
     "TON": "UQCvTwpTPcC4a6aNp0-6lUZk48LuoAGsh9PRuUXYqbrEGRhs",
@@ -352,7 +348,7 @@ def check_captcha(message):
         bot.send_message(chat_id, f"Ошибка. Попробуйте /start заново.")
 
 # ============================================
-# КЛАВИАТУРЫ (С ЭМОДЗИ В КНОПКЕ "РАБОТА")
+# КЛАВИАТУРЫ
 # ============================================
 def main_menu_keyboard():
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -444,7 +440,7 @@ def callback_query(call):
         bot.answer_callback_query(call.id, "Пройдите капчу (/start).", show_alert=True)
         return
     if call.data == "work":
-        bot.answer_callback_query(call.id, WORK_TEXT, show_alert=True)
+        bot.answer_callback_query(call.id, "отредактируй дебил", show_alert=True)
     elif call.data == "balance":
         bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id].get('balance', 0)} руб.", show_alert=True)
     elif call.data == "my_bots":
