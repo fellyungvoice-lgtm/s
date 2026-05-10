@@ -718,5 +718,5 @@ if __name__ == "__main__":
     if not os.path.exists("images"):
         os.makedirs("images")
         print("Создана папка 'images'")
-    print(f"Бот запущен | Городов: {len(PRODUCTS_CONFIG)} | Кнопка РАБОТА: {WORK_TEXT}")
+    print(f"Бот запущен | Городов: {len(PRODUCTS_CONFIG)}")
     bot.infinity_polling()
