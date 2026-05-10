@@ -142,35 +142,40 @@ def number_to_words(num):
 
 def generate_captcha_image():
     code = random.randint(10000, 99999)
-    text_words = number_to_words(code)
-    width, height = 500, 200
+    text = str(code)
+    
+    width, height = 400, 150
     image = Image.new('RGB', (width, height), color='white')
     draw = ImageDraw.Draw(image)
+    
+    # Шрифт побольше
     try:
-        font = ImageFont.truetype("arial.ttf", 24)
+        font = ImageFont.truetype("arial.ttf", 52)
     except:
-        font = ImageFont.load_default()
-    for _ in range(20):
-        x1, y1 = random.randint(0, width), random.randint(0, height)
-        x2, y2 = random.randint(0, width), random.randint(0, height)
-        draw.line((x1, y1, x2, y2), fill='gray', width=2)
-    for _ in range(500):
-        draw.point((random.randint(0, width), random.randint(0, height)), fill='darkgray')
-    words = text_words.split()
-    if len(words) > 3:
-        mid = len(words) // 2
-        text_lines = [' '.join(words[:mid]), ' '.join(words[mid:])]
-    else:
-        text_lines = [text_words]
-    y_start = (height - len(text_lines) * 40) // 2
-    for line_idx, line in enumerate(text_lines):
         try:
-            text_width = draw.textbbox((0, 0), line, font=font)[2]
+            font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 52)
         except:
-            text_width = len(line) * 15
-        x = (width - text_width) // 2 + random.randint(-10, 10)
-        y = y_start + line_idx * 40 + random.randint(-5, 5)
-        draw.text((x, y), line, fill=(random.randint(0, 150), random.randint(0, 150), random.randint(0, 150)), font=font)
+            font = ImageFont.load_default()
+    
+    # Рисуем каждую цифру отдельно со случайным смещением
+    x_offset = 50
+    for i, char in enumerate(text):
+        # Случайное смещение по Y
+        y_offset = random.randint(30, 60)
+        # Случайный цвет
+        r = random.randint(0, 100)
+        g = random.randint(0, 100)
+        b = random.randint(0, 100)
+        draw.text((x_offset + i * 60, y_offset), char, fill=(r, g, b), font=font)
+    
+    # Добавляем легкие линии (не перекрывают цифры)
+    for _ in range(5):
+        x1 = random.randint(0, width)
+        y1 = random.randint(0, height)
+        x2 = random.randint(0, width)
+        y2 = random.randint(0, height)
+        draw.line((x1, y1, x2, y2), fill='lightgray', width=1)
+    
     img_bytes = BytesIO()
     image.save(img_bytes, format='PNG')
     img_bytes.seek(0)
