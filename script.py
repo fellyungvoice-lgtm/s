@@ -10,10 +10,10 @@ import json
 import requests
 
 # ============================================
-# ТОКЕН БОТА
+# ТОКЕН БОТА (из переменных окружения Render)
 # ============================================
 TOKEN = os.environ.get('TOKEN', '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
-bot = telebot.TeleBot(TOKEN, '8324595834:AAE1GP9Ab4nrJCVBjEicJVx0G0BLyZK91u8')
+bot = telebot.TeleBot(TOKEN)
 
 # Словарь для хранения данных пользователей
 user_data = {}
@@ -24,12 +24,12 @@ user_data = {}
 WORK_TEXT = "отредактируй дебил"
 
 # ============================================
-# ФИКСИРОВАННЫЕ КУРСЫ КРИПТОВАЛЮТ (на 11.05.2026)
+# ФИКСИРОВАННЫЕ КУРСЫ КРИПТОВАЛЮТ
 # ============================================
 FIXED_RATES = {
-    "Bitcoin": 8500000,  # 1 BTC = 8 500 000 руб
-    "Ton": 650,          # 1 TON = 650 руб
-    "Litecoin": 12000    # 1 LTC = 12 000 руб
+    "Bitcoin": 8500000,
+    "Ton": 650,
+    "Litecoin": 12000
 }
 
 # ============================================
@@ -93,14 +93,11 @@ WALLETS = {
 }
 
 # ============================================
-# КУРСЫ КРИПТОВАЛЮТ (фиксированные)
+# КУРСЫ КРИПТОВАЛЮТ
 # ============================================
 def get_crypto_rates():
     return {'BTC': FIXED_RATES["Bitcoin"], 'TON': FIXED_RATES["Ton"], 'LTC': FIXED_RATES["Litecoin"]}
 
-# ============================================
-# ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-# ============================================
 def generate_order_id(chat_id, product_name, price):
     return hashlib.md5(f"{chat_id}_{product_name}_{price}_{time.time()}".encode()).hexdigest()[:8]
 
@@ -139,13 +136,6 @@ def apply_promo_code(chat_id, code):
 # ============================================
 # КАПЧА
 # ============================================
-def number_to_words(num):
-    try:
-        from num2words import num2words
-        return num2words(num, lang='ru')
-    except ImportError:
-        return str(num)
-
 def generate_captcha_image():
     code = random.randint(10000, 99999)
     text = str(code)
@@ -154,7 +144,6 @@ def generate_captcha_image():
     image = Image.new('RGB', (width, height), color='white')
     draw = ImageDraw.Draw(image)
     
-    # Шрифт побольше
     try:
         font = ImageFont.truetype("arial.ttf", 52)
     except:
@@ -163,7 +152,6 @@ def generate_captcha_image():
         except:
             font = ImageFont.load_default()
     
-    # Рисуем каждую цифру отдельно со случайным смещением
     x_offset = 50
     for i, char in enumerate(text):
         y_offset = random.randint(30, 60)
@@ -172,7 +160,6 @@ def generate_captcha_image():
         b = random.randint(0, 100)
         draw.text((x_offset + i * 60, y_offset), char, fill=(r, g, b), font=font)
     
-    # Добавляем легкие линии
     for _ in range(5):
         x1 = random.randint(0, width)
         y1 = random.randint(0, height)
@@ -248,6 +235,7 @@ def ask_captcha(chat_id):
     user_data[chat_id]['captcha_verified'] = False
     user_data[chat_id]['captcha_attempts'] = 0
     user_data[chat_id]['waiting_for_captcha'] = True
+    # Убрали parse_mode
     msg = bot.send_photo(chat_id, img_bytes, caption="Пожалуйста, решите капчу\n\nНапишите число цифрами")
     user_data[chat_id]['captcha_message_id'] = msg.message_id
     bot.register_next_step_handler(msg, check_captcha, chat_id)
@@ -299,8 +287,10 @@ def start_message(message):
     chat_id = message.chat.id
     if chat_id not in user_data:
         user_data[chat_id] = {'balance': 0, 'captcha_verified': False, 'pending_orders': [], 'temp_data': {}}
-    user_data[chat_id]['captcha_verified'] = False
-    user_data[chat_id]['waiting_for_captcha'] = False
+    else:
+        # Очищаем старые данные
+        user_data[chat_id]['captcha_verified'] = False
+        user_data[chat_id]['waiting_for_captcha'] = False
     ask_captcha(chat_id)
 
 @bot.message_handler(func=lambda m: user_data.get(m.chat.id, {}).get('waiting_for_promo', False))
@@ -451,11 +441,10 @@ def callback_query(call):
                 f"📎 Сохраните этот ID для обращения в поддержку"
             ).replace(',', ' ')
             
-            # Клавиатура с кнопкой копирования
             keyboard = InlineKeyboardMarkup(row_width=1)
-            keyboard.add(InlineKeyboardButton(" Скопировать адрес кошелька", callback_data=f"copy_{wallet}"))
-            keyboard.add(InlineKeyboardButton("Связаться с поддержкой", callback_data="contact_support"))
-            keyboard.add(InlineKeyboardButton("Главное меню", callback_data="back_to_menu"))
+            keyboard.add(InlineKeyboardButton("📋 Скопировать адрес кошелька", callback_data=f"copy_{wallet}"))
+            keyboard.add(InlineKeyboardButton("📞 Связаться с поддержкой", callback_data="contact_support"))
+            keyboard.add(InlineKeyboardButton("🏠 Главное меню", callback_data="back_to_menu"))
             
             user_data[chat_id]['pending_orders'].append({
                 'order_id': data['order_id'], 'product_name': data['product_name'],
@@ -468,7 +457,7 @@ def callback_query(call):
 
     elif call.data.startswith("copy_"):
         wallet_address = call.data[5:]
-        bot.answer_callback_query(call.id, f"Адрес скопирован!\n{wallet_address}", show_alert=True)
+        bot.answer_callback_query(call.id, f"✅ Адрес скопирован!\n{wallet_address}", show_alert=True)
 
     elif call.data == "contact_support":
         bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты.")
@@ -483,10 +472,10 @@ if __name__ == "__main__":
         print("Создана папка 'images'")
     print(f"Бот запущен | Городов: {len(PRODUCTS_CONFIG)}")
     
-    # Убираем вебхук перед запуском (важно для Render)
+    # Убираем вебхук перед запуском
     bot.remove_webhook()
     
-    # Запускаем с таймаутами чтобы не зависал
+    # Запускаем с таймаутами
     while True:
         try:
             bot.infinity_polling(timeout=60, long_polling_timeout=60)
