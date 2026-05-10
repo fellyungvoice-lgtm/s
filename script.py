@@ -21,7 +21,7 @@ user_data = {}
 # ============================================
 # ТЕКСТ КНОПКИ "РАБОТА"
 # ============================================
-WORK_TEXT = "отредактируй дебил"
+#WORK_TEXT = "отредактируй дебил"
 
 
 # ============================================
@@ -387,7 +387,6 @@ def main_menu_keyboard():
     keyboard.add(InlineKeyboardButton("Баланс", callback_data="balance"))
     keyboard.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
     keyboard.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
-    keyboard.add(InlineKeyboardButton("РАБОТА", callback_data="work"))
     keyboard.add(InlineKeyboardButton("Промокод", callback_data="promo"))
     keyboard.add(InlineKeyboardButton("Поддержка", callback_data="support"))
     return keyboard
@@ -584,8 +583,6 @@ def callback_query(call):
         bot.answer_callback_query(call.id, "Пройдите капчу (/start).", show_alert=True)
         return
 
-    if call.data == "work":
-        bot.answer_callback_query(call.id, WORK_TEXT, show_alert=True)
     elif call.data == "balance":
         bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id].get('balance', 0)} руб.", show_alert=True)
     elif call.data == "my_bots":
