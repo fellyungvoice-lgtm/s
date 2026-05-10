@@ -10,7 +10,7 @@ import json
 import requests
 
 # ============================================
-# ТОКЕН БОТА
+# ТОКЕН БОТА (ЗАМЕНИ НА os.environ.get('TOKEN') ПРИ ДЕПЛОЕ)
 # ============================================
 TOKEN = os.environ.get('TOKEN')
 bot = telebot.TeleBot(TOKEN)
@@ -161,7 +161,7 @@ PRODUCTS_CONFIG = {
     ],
     "Кемерово": [
         {
-            "name": "💵РАБОТА💵",
+            "name": "РАБОТА",
             "price": 80000,
             "image": None,
             "districts": ["Пишите анкету в поддержку"]
@@ -209,7 +209,7 @@ PRODUCTS_CONFIG = {
     ],
     "Абакан": [
         {
-            "name": "💵РАБОТА💵",
+            "name": "РАБОТА",
             "price": 80000,
             "image": None,
             "districts": ["Пишите анкету в поддержку"]
@@ -348,7 +348,7 @@ def check_captcha(message):
         bot.send_message(chat_id, f"Ошибка. Попробуйте /start заново.")
 
 # ============================================
-# КЛАВИАТУРЫ
+# КЛАВИАТУРЫ (БЕЗ КНОПКИ РАБОТА)
 # ============================================
 def main_menu_keyboard():
     keyboard = InlineKeyboardMarkup(row_width=2)
@@ -364,7 +364,6 @@ def main_menu_keyboard():
     keyboard.add(InlineKeyboardButton("Баланс", callback_data="balance"))
     keyboard.add(InlineKeyboardButton("Мои боты", callback_data="my_bots"))
     keyboard.add(InlineKeyboardButton("Последний заказ", callback_data="last_order"))
-    keyboard.add(InlineKeyboardButton("💵РАБОТА💵", callback_data="work"))
     keyboard.add(InlineKeyboardButton("Промокод", callback_data="promo"))
     keyboard.add(InlineKeyboardButton("Поддержка", callback_data="support"))
     return keyboard
@@ -439,9 +438,8 @@ def callback_query(call):
     if not user_data.get(chat_id, {}).get('captcha_verified', False):
         bot.answer_callback_query(call.id, "Пройдите капчу (/start).", show_alert=True)
         return
-    if call.data == "work":
-        bot.answer_callback_query(call.id, "отредактируй дебил", show_alert=True)
-    elif call.data == "balance":
+
+    if call.data == "balance":
         bot.answer_callback_query(call.id, f"Баланс: {user_data[chat_id].get('balance', 0)} руб.", show_alert=True)
     elif call.data == "my_bots":
         bot.answer_callback_query(call.id, "Нет ботов.", show_alert=True)
@@ -516,16 +514,36 @@ def callback_query(call):
                 crypto_amount_str = f"{crypto_amount:.6f}"
             else:
                 crypto_amount_str = "Курс временно недоступен"
+            
+            # Форматируем текст с адресом в моноширинный шрифт для копирования
             if crypto_amount_str != "Курс временно недоступен":
-                text = f"Сумма к оплате:\n\nРУБ: {rub_price:,} руб.\n{crypto}: {crypto_amount_str}\n\nКошелек {crypto}:\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nПосле оплаты пришлите чек в поддержку\n\nID заказа: {data['order_id']}".replace(',', ' ')
+                text = (
+                    f"Сумма к оплате:\n\n"
+                    f"РУБ: {rub_price:,} руб.\n"
+                    f"{crypto}: {crypto_amount_str}\n\n"
+                    f"Кошелек {crypto}:\n"
+                    f"`{WALLETS[crypto]}`\n\n"
+                    f"ВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\n"
+                    f"После оплаты пришлите чек в поддержку\n\n"
+                    f"ID заказа: {data['order_id']}"
+                ).replace(',', ' ')
             else:
-                text = f"Переведите {rub_price:,} руб.\n\n{crypto}\n{WALLETS[crypto]}\n\nВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\nКурс {crypto} временно недоступен, оплатите по курсу в ручном режиме\n\nID заказа: {data['order_id']}".replace(',', ' ')
+                text = (
+                    f"Переведите {rub_price:,} руб.\n\n"
+                    f"{crypto}\n"
+                    f"`{WALLETS[crypto]}`\n\n"
+                    f"ВНИМАНИЕ: неверная сумма = оплатили чужой заказ!\n\n"
+                    f"Курс {crypto} временно недоступен, оплатите по курсу в ручном режиме\n\n"
+                    f"ID заказа: {data['order_id']}"
+                ).replace(',', ' ')
+            
             user_data[chat_id]['pending_orders'].append({
                 'order_id': data['order_id'], 'product_name': data['product_name'],
                 'price': data['price'], 'city_name': data['city_name'],
                 'district': data['district'], 'crypto': crypto, 'timestamp': time.time()
             })
-            bot.send_message(chat_id, text, reply_markup=support_keyboard())
+            # Отправляем сообщение с parse_mode='Markdown' чтобы адрес был в моноширинном шрифте
+            bot.send_message(chat_id, text, reply_markup=support_keyboard(), parse_mode='Markdown')
     elif call.data == "contact_support":
         bot.send_message(chat_id, "Опишите проблему, ID заказа и способ оплаты.")
         user_data[chat_id]['waiting_for_support'] = True
